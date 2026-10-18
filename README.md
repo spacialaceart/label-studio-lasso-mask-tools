@@ -5,9 +5,21 @@
 [Website](https://labelstud.io/) • [Docs](https://labelstud.io/guide/) • [Join Slack Community <img src="https://app.heartex.ai/docs/images/slack-mini.png" width="18px"/>](https://slack.labelstud.io/?source=github-1)
 
 > **Fork note:** This fork adds vibe-coded lasso selection tools for brush/segmentation masks, inspired by Krita's selection tools:
-> - Polygonal lasso
-> - Freehand lasso
-> - Magnetic lasso
+# Lasso tools
+
+Image projects using `<BrushLabels>` or `<Brush>` now include three buttons beside the brush:
+
+- **Polygonal lasso:** click to place vertices. Click the first vertex, double-click, or press Enter to close and fill the outline.
+- **Freehand lasso:** press and drag around an area. Release to close and fill it.
+- **Magnetic lasso:** place anchors along an edge, or drag to place anchors automatically. The preview follows nearby contrast boundaries. Close the outline or press Enter to apply it. Search radius and edge sensitivity control the edge search.
+
+Choose **New mask**, **Add to mask**, or **Subtract from mask** in the lasso options panel. New uses the active label. Add and Subtract require one editable brush mask selected in the Regions list for the same image and brush control. They preserve its label and region ID. Finished masks can still be painted or erased normally.
+
+While drawing, Backspace or Shift+Z removes the last polygonal/magnetic anchor; Ctrl+Z (Cmd+Z on macOS) also undoes an anchor. Escape cancels the outline. Use the Apply selection, Undo point, and Cancel buttons as keyboard alternatives. After applying, normal annotation undo/redo restores the whole operation.
+
+Outlines stay aligned through zoom, pan, and rotation. Middle-button dragging pans while tracing. Selection is clipped to the image bounds; overlapping outline segments use even-odd fill. Masks use hard pixel edges and the existing RLE annotation/export format. Draft outlines are temporary and are discarded when changing images, annotations, or tools.
+
+Magnetic tracing runs in a web worker using image gradients and a bounded shortest-path search. Analysis is limited to 1600 pixels on the longest side for responsiveness; masks are always saved at the original image dimensions. It needs readable image pixels (same origin or appropriate CORS headers). Low-contrast boundaries may need closer manual anchors. Polygonal and freehand tools do not need pixel access.
 
 ## What is Label Studio?
 
