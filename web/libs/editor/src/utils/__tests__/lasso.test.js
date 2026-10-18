@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { applyLassoMask, simplifyLasso } from "../lasso";
+import { applyLassoMask, simplifyLasso, smoothLasso } from "../lasso";
 import { imageEdges, magneticPath } from "../magnetic-lasso";
 
 const alpha = (data, width, x, y) => data[(y * width + x) * 4 + 3];
@@ -152,5 +152,23 @@ describe("magnetic edge tracing", () => {
     expect(path[0]).toEqual([0, 0]);
     expect(path.at(-1)).toEqual([9, 9]);
     expect(path).toHaveLength(10);
+  });
+});
+
+describe("magnetic outline smoothing", () => {
+  it("turns a one-pixel staircase into a few straight segments with rounded corners", () => {
+    const stairs = [[0, 0]];
+    for (let i = 1; i <= 20; i++) stairs.push([i, i - 1], [i, i]);
+    const outline = [...stairs, [0, 20]];
+    const simplified = simplifyLasso(outline, 1);
+    expect(simplified.length).toBeLessThanOrEqual(4);
+    const smooth = smoothLasso(simplified);
+    expect(smooth).toHaveLength(simplified.length * 4);
+    for (const [x, y] of smooth) {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThanOrEqual(20);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(y).toBeLessThanOrEqual(20);
+    }
   });
 });

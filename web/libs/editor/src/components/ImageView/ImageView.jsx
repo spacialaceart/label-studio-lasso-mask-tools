@@ -1091,9 +1091,10 @@ export default observer(
       const isViewingAll = store.annotationStore.viewingAll;
 
       return (
-        <ObjectTag item={item} className={wrapperClasses.join(" ")}
-          style={item.getToolsManager().findSelectedTool()?.isLasso ? { flexWrap: "wrap" } : undefined}>
-          {imageIsLoaded && toolsReady && !isViewingAll && <LassoControls item={item} />}
+        <>
+        {/* Outside ObjectTag so the panel never joins the image/toolbar flex row */}
+        {imageIsLoaded && toolsReady && !isViewingAll && <LassoControls item={item} />}
+        <ObjectTag item={item} className={wrapperClasses.join(" ")}>
           {paginationEnabled ? (
             <div
               className={styles.pagination}
@@ -1212,6 +1213,7 @@ export default observer(
             </div>
           )}
         </ObjectTag>
+        </>
       );
     }
   },

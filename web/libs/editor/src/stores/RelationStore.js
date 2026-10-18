@@ -197,6 +197,17 @@ const RelationStore = types
       rl.length && rl.forEach(self.deleteRelation);
     },
 
+    mergeRegionReferences(absorbed, survivor) {
+      const seen = new Set();
+      for (const relation of [...self.relations]) {
+        if (absorbed.has(relation.node1.id)) relation.node1 = survivor;
+        if (absorbed.has(relation.node2.id)) relation.node2 = survivor;
+        const key = JSON.stringify([relation.node1.id, relation.node2.id, relation.direction, relation.labels]);
+        if (relation.node1 === relation.node2 || seen.has(key)) self.deleteRelation(relation);
+        else seen.add(key);
+      }
+    },
+
     deleteAllRelations() {
       self.relations.forEach((rl) => destroy(rl));
       self.relations = [];

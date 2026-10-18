@@ -14,6 +14,7 @@ import { RelationsControls } from "./RelationsControls";
 import { EmptyState } from "../Components/EmptyState";
 import { IconCursor, IconRelationLink } from "@humansignal/icons";
 import { getDocsUrl } from "../../../utils/docs";
+import { MergeMasksButton } from "./MergeMasksButton";
 
 interface DetailsPanelProps extends PanelProps {
   regions: any;
@@ -209,6 +210,7 @@ GeneralPanel.displayName = "GeneralPanel";
 const RegionsPanel: FC<{ regions: any }> = observer(function RegionsPanel({ regions }: { regions: any }): JSX.Element {
   return (
     <div>
+      <MergeMasksButton selection={regions} />
       {regions.list.map((reg: any) => {
         return <SelectedRegion key={reg.id} region={reg} />;
       })}

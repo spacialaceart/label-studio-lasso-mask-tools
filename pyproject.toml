@@ -130,6 +130,8 @@ exclude-newer = "4 days"
 [tool.uv.build-backend]
 module-name = "label_studio"
 module-root = ""
+# Settings read the frontend from site-packages/web/dist; copy web/dist to dist/purelib/web/dist before `uv build`.
+data = { purelib = "dist/purelib" }
 
 [tool.ruff]
 # Assume Python 3.10 at a minimum

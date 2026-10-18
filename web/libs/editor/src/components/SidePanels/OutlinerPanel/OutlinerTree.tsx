@@ -255,7 +255,7 @@ const useDataTree = ({ regions, rootClass, footer }: any) => {
 
 const useEventHandlers = () => {
   const onSelect = useCallback((_, evt) => {
-    const multi = evt.nativeEvent.ctrlKey || (isMacOS() && evt.nativeEvent.metaKey);
+    const multi = evt.nativeEvent.ctrlKey || evt.nativeEvent.shiftKey || (isMacOS() && evt.nativeEvent.metaKey);
     const { node } = evt;
 
     const self = node?.item;

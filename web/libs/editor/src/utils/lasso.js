@@ -30,6 +30,21 @@ export function applyLassoMask(base, points, width, height, operation = "new") {
   return { data, pixels };
 }
 
+/** Chaikin corner cutting on a closed outline; rounds pixel-step paths into smooth curves. */
+export function smoothLasso(points, iterations = 2) {
+  let result = points;
+  for (let n = 0; n < iterations && result.length >= 3; n++) {
+    const next = [];
+    for (let i = 0; i < result.length; i++) {
+      const [ax, ay] = result[i];
+      const [bx, by] = result[(i + 1) % result.length];
+      next.push([0.75 * ax + 0.25 * bx, 0.75 * ay + 0.25 * by], [0.25 * ax + 0.75 * bx, 0.25 * ay + 0.75 * by]);
+    }
+    result = next;
+  }
+  return result;
+}
+
 /** Iterative Ramer-Douglas-Peucker simplification; avoids recursion on long strokes. */
 export function simplifyLasso(points, tolerance = 0.5) {
   if (points.length < 3) return points;

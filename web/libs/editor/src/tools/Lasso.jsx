@@ -6,7 +6,7 @@ import BaseTool from "./Base";
 import ToolMixin from "../mixins/Tool";
 import { Tool } from "../components/Toolbar/Tool";
 import Canvas from "../utils/canvas";
-import { applyLassoMask, simplifyLasso } from "../utils/lasso";
+import { applyLassoMask, simplifyLasso, smoothLasso } from "../utils/lasso";
 
 const names = { polygonal: "Polygonal lasso", freehand: "Freehand lasso", magnetic: "Magnetic lasso" };
 const LassoIcon = ({ kind }) => (
@@ -386,6 +386,9 @@ const LassoModel = types
           const { naturalWidth: width, naturalHeight: height } = object.currentImageEntity;
           points = points.map(([x, y]) => [(x * width) / 100, (y * height) / 100]);
           if (self.kind === "freehand") points = simplifyLasso(points, 0.5);
+          // Edge paths step one analysis pixel at a time; drop the steps, then round the outline.
+          if (self.kind === "magnetic")
+            points = smoothLasso(simplifyLasso(points, Math.max(1, width / (workerSize?.[0] || width))));
           let base;
           if (region) {
             let bitmap = region.getMaskImage();

@@ -25,6 +25,7 @@ import Area from "../../regions/Area";
 import Result from "../../regions/Result";
 import Utils from "../../utils";
 import { dedupeAnnotationWireResults } from "../../utils/dedupeAnnotationWireResults";
+import { mergeMasksReason } from "../../utils/mergeMasks";
 import { FF_DEV_1284, FF_DEV_3391, FF_LSDV_4583, FF_REVIEWER_FLOW, isFF } from "../../utils/feature-flags";
 import { delay, isDefined } from "../../utils/utilities";
 import { CommentStore } from "../Comment/CommentStore";
@@ -722,6 +723,42 @@ const _Annotation = types
       // If the annotation was in a drawing state and the user deletes it, we need to reset the drawing state
       // to avoid the user being stuck in a drawing state
       self.setIsDrawing(false);
+    },
+
+    mergeMasks(regions, rle) {
+      const reason = mergeMasksReason(regions);
+      if (reason || regions.some((r) => r.annotation !== self)) throw new Error(reason || "The annotation changed.");
+      // ouid is the creation order used by the Regions panel's By Time sort.
+      const ordered = [...regions].sort((a, b) => a.ouid - b.ouid);
+      const survivor = ordered[0];
+      const absorbed = new Set(ordered.slice(1).map((r) => r.id));
+      self.history.freeze("merge-masks");
+      self.pauseAutosave();
+      try {
+        let parentID = survivor.parentID;
+        let ancestorID = parentID;
+        const visited = new Set([survivor.id]);
+        while (ancestorID && !visited.has(ancestorID)) {
+          visited.add(ancestorID);
+          const ancestor = self.areas.get(ancestorID);
+          if (!ancestor) break;
+          if (absorbed.has(ancestorID)) parentID = ancestor.parentID;
+          ancestorID = ancestor.parentID;
+        }
+        survivor.setParentID(parentID);
+        for (const region of self.regionStore.regions) {
+          if (region !== survivor && !absorbed.has(region.id) && absorbed.has(region.parentID))
+            region.setParentID(survivor.id);
+        }
+        self.relationStore.mergeRegionReferences(absorbed, survivor);
+        self.unselectAreas();
+        survivor.replaceMask(rle);
+        ordered.slice(1).forEach((region) => self.deleteRegion(region));
+        self.selectArea(survivor);
+      } finally {
+        self.history.unfreeze("merge-masks");
+        self.startAutosave();
+      }
     },
 
     deleteArea(area) {

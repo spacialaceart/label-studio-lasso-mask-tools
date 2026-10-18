@@ -32,6 +32,93 @@ const square = [
 ];
 
 describe("Image segmentation - Lasso tools", () => {
+  it("merges selected masks into the oldest ID and reloads the result", () => {
+    init();
+    tool();
+    polygon(square);
+    polygon([[0.65, 0.65], [0.9, 0.65], [0.9, 0.9], [0.65, 0.9]]);
+    let oldestID;
+    cy.window().then((win) => {
+      const annotation = win.Htx.annotationStore.selected;
+      const regions = [...annotation.regionStore.regions].sort((a, b) => a.ouid - b.ouid);
+      oldestID = regions[0].cleanId;
+      regions[0].setParentID(regions[1].id);
+      annotation.selectAreas([...regions].reverse());
+    });
+    cy.screenshot("merge-selected-masks", { capture: "viewport" });
+    cy.contains("button", "Merge selected masks").should("be.enabled").click();
+    Sidebar.hasRegions(1);
+    checkPixel(50, 50, 255);
+    checkPixel(150, 150, 255);
+    checkPixel(125, 125, 0);
+    LabelStudio.serialize().then((result) => {
+      expect(result[0].id).to.equal(oldestID);
+      init(result);
+    });
+    checkPixel(150, 150, 255);
+  });
+  it("undoes and redoes a mask merge in one step", () => {
+    init();
+    tool();
+    polygon(square);
+    polygon([[0.65, 0.65], [0.9, 0.65], [0.9, 0.9], [0.65, 0.9]]);
+    cy.window().then((win) => {
+      const annotation = win.Htx.annotationStore.selected;
+      annotation.selectAreas(annotation.regionStore.regions);
+    });
+    cy.contains("button", "Merge selected masks").click();
+    Sidebar.hasRegions(1);
+    Hotkeys.undo();
+    Sidebar.hasRegions(2);
+    Hotkeys.redo();
+    Sidebar.hasRegions(1);
+    checkPixel(150, 150, 255);
+  });
+  it("redirects relations and preserves children when merging an ancestor into its descendant", () => {
+    init();
+    tool();
+    polygon(square);
+    polygon([[0.65, 0.65], [0.9, 0.65], [0.9, 0.9], [0.65, 0.9]]);
+    polygon([[0.7, 0.1], [0.9, 0.1], [0.9, 0.3], [0.7, 0.3]]);
+    cy.window().then((win) => {
+      const annotation = win.Htx.annotationStore.selected;
+      const [oldest, newer, external] = [...annotation.regionStore.regions].sort((a, b) => a.ouid - b.ouid);
+      oldest.setParentID(external.id);
+      external.setParentID(newer.id);
+      annotation.relationStore.addRelation(newer, external);
+      annotation.relationStore.addRelation(oldest, newer);
+      annotation.selectAreas([newer, oldest]);
+    });
+    cy.contains("button", "Merge selected masks").click();
+    cy.window().then((win) => {
+      const annotation = win.Htx.annotationStore.selected;
+      expect(annotation.regionStore.regions).to.have.length(2);
+      const [oldest, external] = [...annotation.regionStore.regions].sort((a, b) => a.ouid - b.ouid);
+      expect(oldest.parentID).to.not.equal(external.id);
+      expect(external.parentID).to.equal(oldest.id);
+      expect(annotation.relationStore.relations).to.have.length(1);
+      expect(annotation.relationStore.relations[0].node1).to.equal(oldest);
+      expect(annotation.relationStore.relations[0].node2).to.equal(external);
+    });
+    Hotkeys.undo();
+    cy.window().then((win) => {
+      expect(win.Htx.annotationStore.selected.regionStore.regions).to.have.length(3);
+      expect(win.Htx.annotationStore.selected.relationStore.relations).to.have.length(2);
+    });
+  });
+  it("disables merging masks with different labels", () => {
+    init([], config.replace('<Label value="Coral"', '<Label value="Other"/><Label value="Coral"'));
+    tool();
+    polygon(square);
+    cy.window().then((win) => win.Htx.annotationStore.selected.unselectAreas());
+    Labels.select("Other");
+    polygon([[0.65, 0.65], [0.9, 0.65], [0.9, 0.9], [0.65, 0.9]]);
+    cy.window().then((win) => {
+      const annotation = win.Htx.annotationStore.selected;
+      annotation.selectAreas(annotation.regionStore.regions);
+    });
+    cy.contains("button", "Merge selected masks").should("be.disabled");
+  });
   it("keeps mask coordinates correct on a rotated, zoomed, and panned non-square image", () => {
     const rectangular = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120"><rect width="200" height="120" fill="#bcd"/></svg>')}`;
     LabelStudio.params().config(config).data({ image: rectangular }).withResult([]).init();
