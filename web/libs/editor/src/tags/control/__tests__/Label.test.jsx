@@ -236,6 +236,35 @@ describe("Label model", () => {
     mockAnnotation.selectedDrawingRegions = [];
   });
 
+  it("activates the registered smart tool when selecting a smart-only label", () => {
+    const config = Tree.treeToModel(
+      `<View><Labels name="custom" toName="t" smartonly="true"><Label value="New category" /><Label value="Other category" /></Labels><Text name="t" value="$text" /></View>`,
+      { task: { dataObj: { text: "Hello" } } },
+    );
+    const root = Registry.getModelByTag("view").create(config);
+    const labels = root.children.find((c) => c.type === "labels");
+    const smartTool = { control: labels, dynamic: true };
+    const unrelatedTool = { control: { name: "other" }, dynamic: true };
+    const selectTool = mock();
+    const previousGetInstance = ToolsManager.getInstance;
+    ToolsManager.getInstance = () => ({
+      allTools: () => [unrelatedTool, smartTool],
+      findSelectedTool: () => null,
+      selectTool,
+    });
+    try {
+      labels.children[0].toggleSelected();
+      expect(selectTool).toHaveBeenLastCalledWith(smartTool, true);
+      expect(labels.children[0].selected).toBe(true);
+      selectTool.mockClear();
+      labels.children[1].toggleSelected();
+      expect(selectTool).toHaveBeenLastCalledWith(smartTool, true);
+      expect(labels.children[1].selected).toBe(true);
+    } finally {
+      ToolsManager.getInstance = previousGetInstance;
+    }
+  });
+
   it("toggleSelected in multiple choice mode toggles only this label", () => {
     const storeRef = { task: { dataObj: { text: "Hi" } } };
     const config = Tree.treeToModel(

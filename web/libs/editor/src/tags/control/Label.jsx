@@ -195,10 +195,14 @@ const Model = types
       if (sameObjectSelectedRegions.length > 0 && applicableRegions.length === 0) return;
 
       // if we are going to select label and it would be the first in this labels group
-      if (!labels.selectedLabels.length && !self.selected) {
+      if (!self.selected && (!labels.selectedLabels.length || labels.smartonly)) {
         // unselect other tools if they exist and selected
         const manager = ToolsManager.getInstance({ name: self.parent.toname });
-        const tool = Object.values(self.parent?.tools || {})[0];
+        // Smart-only controls register a dynamic copy in the manager; the
+        // original control tool is deliberately excluded from its toolbar.
+        const tool = labels.smartonly
+          ? manager.allTools().find((candidate) => candidate.control === labels && candidate.dynamic)
+          : Object.values(labels.tools || {})[0];
 
         const selectedTool = manager.findSelectedTool();
         const sameType = tool && selectedTool ? getType(selectedTool).name === getType(tool).name : false;
