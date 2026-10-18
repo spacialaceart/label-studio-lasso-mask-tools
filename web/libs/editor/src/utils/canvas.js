@@ -176,7 +176,7 @@ function RLE2Region(item, { color = Constants.FILL_COLOR } = {}) {
  * Exports region using canvas. Doesn't require Konva#Stage access
  * @param {Region} region Brush region
  */
-function exportRLE(region) {
+function brushRegionToCanvas(region, maskImage = region.getMaskImage?.()) {
   const { naturalWidth, naturalHeight } = region.currentImageEntity;
 
   // Prepare the canvas with sizes of image and stage
@@ -206,8 +206,6 @@ function exportRLE(region) {
 
     ctx.putImageData(imageData, 0, 0);
   }
-
-  const maskImage = region.getMaskImage?.();
 
   if (maskImage) {
     // Apply maskDataURL to existing image data
@@ -249,7 +247,14 @@ function exportRLE(region) {
     });
   }
 
-  const imageData = ctx.getImageData(0, 0, naturalWidth, naturalHeight).data;
+  canvas.remove();
+  return canvas;
+}
+
+function exportRLE(region) {
+  const canvas = brushRegionToCanvas(region);
+  const ctx = canvas.getContext("2d");
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
   // Grayscale pixels respecting the opacity
   for (let i = imageData.length / 4; i--; ) {
@@ -576,6 +581,7 @@ function checkEndian() {
 
 export default {
   Region2RLE,
+  brushRegionToCanvas,
   RLE2Region,
   mask2DataURL,
   maskDataURL2Image,

@@ -424,6 +424,19 @@ const Model = types
         annotation.autosave && setTimeout(() => annotation.autosave());
       },
 
+      // A lasso operation has already composited the bitmap and all brush/eraser
+      // strokes. Replace them atomically so old strokes cannot repaint a cutout.
+      replaceMask(rle) {
+        self.currentTouch = null;
+        self.touches.clear();
+        self.maskDataURL = undefined;
+        maskImage = null;
+        self.rle = rle;
+        self.updateRLEBBox();
+        self.needsUpdate++;
+        self.notifyDrawingFinished();
+      },
+
       convertPointsToMask() {},
 
       setScale(x, y) {

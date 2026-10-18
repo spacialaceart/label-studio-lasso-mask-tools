@@ -50,7 +50,7 @@ const Model = types
     },
   }))
   .volatile(() => ({
-    toolNames: ["Brush", "Erase"],
+    toolNames: ["Brush", "PolygonalLasso", "FreehandLasso", "MagneticLasso", "Erase"],
   }));
 
 const BrushModel = types.compose(

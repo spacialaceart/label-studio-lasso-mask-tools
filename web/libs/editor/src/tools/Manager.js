@@ -196,7 +196,7 @@ class ToolsManager {
   resetActiveDrawing() {
     const drawingTool = this.findDrawingTool();
 
-    if (drawingTool?.currentArea) {
+    if (drawingTool?.currentArea || drawingTool?.isLasso) {
       drawingTool.resetBeforeAnnotationSwitch();
     }
   }

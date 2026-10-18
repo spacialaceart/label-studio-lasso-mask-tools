@@ -25,6 +25,7 @@ import { FF_DEV_1442, FF_LSDV_4930, isFF } from "../../utils/feature-flags";
 import { InteractiveActionsBar } from "../../ml-interactive/InteractiveActionsBar";
 import { Pagination } from "../../common/Pagination/Pagination";
 import { Image } from "./Image";
+import { LassoControls, LassoOverlay } from "./LassoOverlay";
 
 Konva.showWarnings = false;
 
@@ -1090,7 +1091,9 @@ export default observer(
       const isViewingAll = store.annotationStore.viewingAll;
 
       return (
-        <ObjectTag item={item} className={wrapperClasses.join(" ")}>
+        <ObjectTag item={item} className={wrapperClasses.join(" ")}
+          style={item.getToolsManager().findSelectedTool()?.isLasso ? { flexWrap: "wrap" } : undefined}>
+          {imageIsLoaded && toolsReady && !isViewingAll && <LassoControls item={item} />}
           {paginationEnabled ? (
             <div
               className={styles.pagination}
@@ -1466,6 +1469,7 @@ const StageContent = observer(({ item, store, state, crosshairRef }) => {
       })}
       <Selection item={item} isPanning={state.isPanning} />
       <DrawingRegion item={item} />
+      <LassoOverlay item={item} />
       {item.smoothingEnabled === false && <PixelGridLayer item={item} />}
 
       {item.crosshair && <Crosshair ref={crosshairRef} width={item.containerWidth} height={item.containerHeight} />}

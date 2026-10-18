@@ -1,4 +1,4 @@
-import cypressCoverageTask from "@cypress/code-coverage/task.js";
+import cypressCoverageTask from "@cypress/code-coverage/task";
 import lockfile from "proper-lockfile";
 import fs from "fs";
 import path from "path";

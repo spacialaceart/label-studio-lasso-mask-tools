@@ -2,6 +2,7 @@
 // export { default as KeyPoint } from "./KeyPoint";
 
 import { Brush } from "./Brush";
+export { PolygonalLasso, FreehandLasso, MagneticLasso } from "./Lasso";
 import { Bitmask } from "./Bitmask";
 import { Erase } from "./Erase";
 import { BitmaskErase } from "./BitmaskErase";
