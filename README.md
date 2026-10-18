@@ -4,6 +4,10 @@
 
 [Website](https://labelstud.io/) • [Docs](https://labelstud.io/guide/) • [Join Slack Community <img src="https://app.heartex.ai/docs/images/slack-mini.png" width="18px"/>](https://slack.labelstud.io/?source=github-1)
 
+> **Fork note:** This fork adds vibe-coded lasso selection tools for brush/segmentation masks, inspired by Krita's selection tools:
+> - Polygonal lasso
+> - Freehand lasso
+> - Magnetic lasso
 
 ## What is Label Studio?
 
