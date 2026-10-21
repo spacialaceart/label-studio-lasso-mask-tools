@@ -34,6 +34,7 @@ from drf_spectacular.views import (
 
 urlpatterns = [
     re_path(r'^$', views.main, name='main'),
+    path('clear-cache/', views.clear_browser_cache, name='clear-browser-cache'),
     re_path(r'^sw\.js$', views.static_file_with_host_resolver('js/sw.js', content_type='text/javascript')),
     re_path(
         r'^sw-fallback\.js$',

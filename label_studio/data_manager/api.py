@@ -8,6 +8,7 @@ from core.permissions import ViewClassPermission, all_permissions
 from core.utils.common import int_from_request, load_func
 from core.utils.params import bool_from_request
 from data_manager.actions import get_action_form, get_all_actions, perform_action
+from data_manager.folder_tree import build_folder_tree
 from data_manager.functions import evaluate_predictions, get_prepare_params
 from data_manager.managers import get_fields_for_evaluation, get_visible_data_column_keys
 from data_manager.models import View
@@ -45,6 +46,24 @@ from users.models import User
 from users.serializers import UserSimpleSerializer
 
 logger = logging.getLogger(__name__)
+
+
+@extend_schema(exclude=True)
+class ProjectFoldersAPI(APIView):
+    permission_required = all_permissions.projects_view
+
+    def get(self, request, pk):
+        from io_storages.localfiles.models import LocalFilesImportStorageLink
+
+        project = generics.get_object_or_404(Project.objects.for_user(request.user), pk=pk)
+        self.check_object_permissions(request, project)
+        rows = (
+            LocalFilesImportStorageLink.objects.filter(task__project=project, storage__project=project)
+            .values('storage_id', 'storage__path', 'key')
+            .annotate(task_count=Count('task_id', distinct=True))
+            .order_by()
+        )
+        return Response({'folders': build_folder_tree(rows)})
 
 
 @extend_schema(exclude=True)

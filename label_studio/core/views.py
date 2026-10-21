@@ -43,6 +43,14 @@ def main(request):
     return redirect(reverse('user-login'))
 
 
+def clear_browser_cache(request):
+    """Reset this origin's browser caches without touching cookies or saved work."""
+    response = render(request, 'clear_browser_cache.html')
+    response['Cache-Control'] = 'no-store'
+    response['Clear-Site-Data'] = '"cache"'
+    return response
+
+
 def version_page(request):
     """Get platform version"""
     # update the latest version from pypi response
@@ -189,6 +197,8 @@ def static_file_with_host_resolver(path_on_disk, content_type):
             wrapper = FileWrapper(out)
             response = HttpResponse(wrapper, content_type=content_type)
             response['Content-Length'] = len(body)
+            if os.path.basename(path_on_disk) in ('sw.js', 'sw-fallback.js'):
+                response['Cache-Control'] = 'no-cache'
             return response
 
     return serve_file

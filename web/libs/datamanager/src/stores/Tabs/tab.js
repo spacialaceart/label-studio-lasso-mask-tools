@@ -22,6 +22,7 @@ import { preferSiblingFilterType } from "./child_filter_types";
 import { validateFilterSnapshot } from "./filter_snapshot_utils";
 import { clearPersonalColumnOrder } from "../../components/Common/Table/columnOrderStorage";
 import { clearUnavailableVirtualFilters } from "./unavailable_filters";
+import { folderFilterValue } from "./folder_filter";
 
 export const Tab = types
   .model("View", {
@@ -37,6 +38,7 @@ export const Tab = types
     target: types.optional(types.enumeration(["tasks", "annotations"]), "tasks"),
 
     filters: types.array(types.late(() => TabFilter)),
+    folderPrefix: "",
     conjunction: types.optional(types.enumeration(["and", "or"]), "and"),
     hiddenColumns: types.maybeNull(types.optional(TabHiddenColumns, {})),
     ordering: types.optional(types.array(types.string), []),
@@ -159,6 +161,21 @@ export const Tab = types
 
     get filtersApplied() {
       return self.validFilters.length;
+    },
+
+    get folderFilter() {
+      return self.folderPrefix
+        ? self.filters.find(
+            (filter) =>
+              filter.field.alias === "storage_filename" &&
+              filter.operator === "regex" &&
+              filter.value === folderFilterValue(self.folderPrefix),
+          )
+        : null;
+    },
+
+    get activeFolderPrefix() {
+      return self.folderFilter ? self.folderPrefix : "";
     },
 
     get isLockedByManager() {
@@ -288,6 +305,7 @@ export const Tab = types
       if (self.virtual) {
         return {
           title: self.title,
+          folderPrefix: self.folderPrefix,
           filters: self.filterSnapshot,
           ordering: self.ordering.toJSON(),
           hiddenColumns: self.hiddenColumnsSnapshot,
@@ -305,6 +323,7 @@ export const Tab = types
 
       const data = {
         title: self.title,
+        folderPrefix: self.folderPrefix,
         ordering: self.ordering.toJSON(),
         type: self.type,
         target: self.target,
@@ -392,9 +411,52 @@ export const Tab = types
 
     setConjunction(value) {
       if (self.isLockedByManager) return self.notifyLocked();
+      if (value === "or" && self.folderFilter) {
+        self.root.SDK.invoke("toast", {
+          message: "Choose All tasks before switching to Match any filters.",
+          type: "info",
+        });
+        return;
+      }
       self.conjunction = value;
       self.save();
     },
+
+    setFolderPrefix: flow(function* (prefix) {
+      if (self.isLockedByManager) return self.notifyLocked();
+      const previous = self.folderFilter;
+      // Replace directory-only filters previously entered by hand (e.g. "\\2016\\").
+      const oldDirectoryFilters = self.filters.filter(
+        (filter) =>
+          filter.field.alias === "storage_filename" &&
+          filter.operator === "contains" &&
+          typeof filter.value === "string" &&
+          /^[/\\][^/\\]+[/\\]$/.test(filter.value),
+      );
+      const otherFilters = self.validFilters.filter(
+        (filter) => filter !== previous && !oldDirectoryFilters.includes(filter),
+      );
+      if (prefix && self.conjunction === "or" && otherFilters.length > 0) {
+        self.root.SDK.invoke("toast", {
+          message: "Switch Filters to Match all before choosing a folder.",
+          type: "info",
+        });
+        return;
+      }
+      const filterType = self.availableFilters.find((type) => type.field.alias === "storage_filename");
+      if (prefix && !filterType) return;
+      if (previous) destroy(previous);
+      oldDirectoryFilters.forEach((filter) => destroy(filter));
+      if (prefix && otherFilters.length === 0) self.conjunction = "and";
+      self.folderPrefix = prefix;
+      if (prefix) {
+        self.filters.push(
+          TabFilter.create({ filter: filterType, operator: "regex", value: folderFilterValue(prefix) }),
+        );
+      }
+      self.clearSelection();
+      yield self.save();
+    }),
 
     setOrdering(value) {
       if (self.isLockedByManager) return self.notifyLocked();

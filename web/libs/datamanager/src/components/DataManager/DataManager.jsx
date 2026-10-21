@@ -10,6 +10,7 @@ import { FiltersSidebar } from "../Filters/FiltersSidebar/FilterSidebar";
 import { DataView } from "../MainView";
 import "./DataManager.prefix.css";
 import { Toolbar } from "./Toolbar/Toolbar";
+import { FolderSidebar } from "./FolderSidebar";
 
 const tabContentCN = cn("tabs-dm-content");
 
@@ -133,6 +134,7 @@ const TabsSwitch = switchInjector(
 export const DataManager = injector(({ shrinkWidth }) => {
   return (
     <div className={tabContentCN.toClassName()}>
+      <FolderSidebar />
       <div className={tabContentCN.elem("tab").mod({ shrink: shrinkWidth }).toClassName()}>
         <Interface name="tabs">
           <TabsSwitch />

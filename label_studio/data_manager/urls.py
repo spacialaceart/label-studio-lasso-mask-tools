@@ -11,6 +11,7 @@ router.register(r'views', api.ViewAPI, basename='view')
 urlpatterns = [
     path('api/dm/', include((router.urls, app_name), namespace='api')),
     path('api/dm/columns/', api.ProjectColumnsAPI.as_view(), name='dm-columns'),
+    path('api/dm/projects/<int:pk>/folders/', api.ProjectFoldersAPI.as_view(), name='dm-folders'),
     path(
         'api/dm/projects/<int:pk>/user-options/',
         api.ProjectUsersOptionsAPI.as_view(),

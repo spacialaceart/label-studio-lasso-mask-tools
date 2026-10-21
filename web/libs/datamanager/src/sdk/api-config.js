@@ -11,6 +11,9 @@ export const APIConfig = {
     /** Project-scoped users for Data Manager filter options */
     projectUsers: "/projects/:project/user-options",
 
+    /** Folders containing this project's imported local files */
+    folders: "/projects/:project/folders",
+
     /** user info */
     user: "/../users/:pk",
 

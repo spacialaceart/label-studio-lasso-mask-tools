@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clear Label Studio cache</title>
+<body>
+<p id="status" role="status">Clearing Label Studio's cached files…</p>
+<noscript>Enable JavaScript to clear the service worker cache.</noscript>
+<script>
+(async () => {
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(registration => registration.unregister()));
+    }
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map(name => caches.delete(name)));
+    }
+    document.getElementById('status').textContent = 'Cache cleared. Reloading Label Studio…';
+    window.location.replace('../?cache_reset=' + Date.now());
+  } catch (error) {
+    document.getElementById('status').textContent = 'Cache reset failed: ' + error.message;
+  }
+})();
+</script>
+</body>
+</html>
