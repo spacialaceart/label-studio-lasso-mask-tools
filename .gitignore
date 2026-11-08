@@ -86,3 +86,15 @@ CLAUDE.local.md
 web/libs/editor/tests/coverage
 web/coverage-chunks
 .cache
+scripts/build_release_wheel.py
+label_studio/core/static/js/manifest.json
+label_studio/core/static/js/sw.js
+label_studio/core/static/js/sw.js.map
+CPC_OVERLAY.md
+LASSO_TOOLS.md
+run-local-config.example.bat
+run-sam2-backend.bat
+run-with-sam2-large.bat
+run-with-sam2.bat
+WINDOWS_RUN.md
+build-release-wheel.bat
