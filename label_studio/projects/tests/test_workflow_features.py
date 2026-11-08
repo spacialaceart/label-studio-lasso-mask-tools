@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from core.optional_features import load_workflow_defaults
+from label_studio.core.optional_features import load_workflow_defaults
 from django.test import SimpleTestCase, override_settings
 from projects.models import Project
 from projects.serializers import ProjectSerializer

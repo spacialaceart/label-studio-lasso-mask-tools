@@ -19,7 +19,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from label_studio.core.utils.params import get_bool_env, get_env, get_env_list, has_env
 
-from core.optional_features import load_workflow_defaults
+from label_studio.core.optional_features import load_workflow_defaults
 
 WORKFLOW_DEFAULTS = load_workflow_defaults()
 
