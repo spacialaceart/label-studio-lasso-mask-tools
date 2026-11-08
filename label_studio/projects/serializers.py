@@ -252,7 +252,7 @@ class ProjectSerializer(FlexFieldsModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        for name in ('cpc_integration', 'folder_navigation'):
+        for name in ('cpc_integration', 'folder_navigation', 'labels_panel'):
             if name in data:
                 data[name] = instance.workflow_feature_enabled(name)
         # Rows saved before the allowlist was narrowed (or copied past the serializer) must not reach the browser raw
@@ -310,6 +310,7 @@ class ProjectSerializer(FlexFieldsModelSerializer):
             'show_instruction',
             'cpc_integration',
             'folder_navigation',
+            'labels_panel',
             'show_skip_button',
             'enable_empty_annotation',
             'show_annotation_history',

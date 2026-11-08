@@ -18,6 +18,7 @@ declare type APIProject = {
   show_instruction?: boolean;
   cpc_integration?: boolean;
   folder_navigation?: boolean;
+  labels_panel?: boolean;
 
   /** Show a skip button in interface and allow annotators to skip the task */
   show_skip_button?: boolean;

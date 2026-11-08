@@ -1,0 +1,23 @@
+.panel {
+  padding: 12px;
+  min-width: 0;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.group {
+  margin-bottom: 20px;
+}
+
+.heading {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.group :global(.lsf-labels) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

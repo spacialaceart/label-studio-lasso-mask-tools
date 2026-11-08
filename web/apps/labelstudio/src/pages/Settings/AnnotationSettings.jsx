@@ -79,6 +79,14 @@ export const AnnotationSettings = () => {
               />
             </Form.Row>
 
+            <Form.Row columnCount={1}>
+              <Toggle
+                label="Labels panel"
+                name="labels_panel"
+                description="Show segmentation labels in a separate sidebar tab."
+              />
+            </Form.Row>
+
             <Form.Actions>
               <Form.Indicator>
                 <span case="success">Saved!</span>

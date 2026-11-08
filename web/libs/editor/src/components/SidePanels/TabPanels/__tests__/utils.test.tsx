@@ -1063,3 +1063,27 @@ describe("host panel tab", () => {
     });
   });
 });
+
+
+describe("optional Labels panel", () => {
+  afterEach(() => localStorage.removeItem("panelState"));
+  const views = (state) => Object.values(state.panelData).flatMap((panel) => panel.panelViews);
+
+  it("is absent by default and appears only when enabled", () => {
+    expect(views(restorePanel(true)).some((view) => view.name === "labels")).toBe(false);
+    expect(views(restorePanel(true, false, false, true)).some((view) => view.name === "labels")).toBe(true);
+  });
+
+  it("removes a saved Labels tab without resetting other panel geometry", () => {
+    const original = restorePanel(true, false, false, true);
+    Object.values(original.panelData).forEach((panel) => { panel.width = 377; });
+    localStorage.setItem("panelState", JSON.stringify(original));
+    const disabled = restorePanel(true, false, false, false);
+    expect(views(disabled).some((view) => view.name === "labels")).toBe(false);
+    expect(Object.values(disabled.panelData).every((panel) => panel.width === 377)).toBe(true);
+    localStorage.setItem("panelState", JSON.stringify(disabled));
+    const enabled = restorePanel(true, false, false, true);
+    expect(views(enabled).some((view) => view.name === "labels")).toBe(true);
+    expect(Object.values(enabled.panelData).every((panel) => panel.width === 377)).toBe(true);
+  });
+});

@@ -77,9 +77,10 @@ const SideTabsPanelsComponent: FC<SidePanelsProps> = ({
   const [snap, setSnap] = useState<DropSide | Side | undefined>();
   // The tab a host app fills itself, if it shows one now (see `hostPanel` in AppStore).
   const hostTitle = hostPanel?.shown ? hostPanel.title : false;
+  const showLabels = currentEntity?.store?.project?.labels_panel === true;
   const initialState = useMemo(
-    () => restorePanel(showComments, showCustomTab, hostTitle),
-    [showComments, showCustomTab, hostTitle],
+    () => restorePanel(showComments, showCustomTab, hostTitle, showLabels),
+    [showComments, showCustomTab, hostTitle, showLabels],
   );
   const [panelData, setPanelData] = useState<Record<string, PanelBBox>>(initialState.panelData);
   const [collapsedSide, setCollapsedSide] = useState(initialState.collapsedSide);
@@ -580,11 +581,11 @@ const SideTabsPanelsComponent: FC<SidePanelsProps> = ({
     const updatedProps = { ...partialEmptyBaseProps };
 
     updatedProps.panelViews = partialEmptyBaseProps.panelViews.filter(
-      (view) => view.name !== "comments" || showComments,
+      (view) => (view.name !== "comments" || showComments) && (view.name !== "labels" || showLabels),
     );
 
     return updatedProps;
-  }, [partialEmptyBaseProps, showComments]);
+  }, [partialEmptyBaseProps, showComments, showLabels]);
 
   const emptyBaseProps = { ...getPartialEmptyBaseProps, ...commonProps, breakPointActiveTab, setBreakPointActiveTab };
 

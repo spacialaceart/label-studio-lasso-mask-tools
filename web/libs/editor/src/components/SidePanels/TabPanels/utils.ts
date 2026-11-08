@@ -10,6 +10,7 @@ import {
 } from "../constants";
 import { Comments, Custom, History, Host, Info, Relations } from "../DetailsPanel/DetailsPanel";
 import { OutlinerComponent } from "../OutlinerPanel/OutlinerPanel";
+import { LabelsPanel } from "../DetailsPanel/LabelsPanel";
 import type { PanelProps } from "../PanelBase";
 import {
   emptyPanel,
@@ -178,6 +179,7 @@ export const panelComponents: { [key: string]: FC<PanelProps> } = {
   comments: Comments as FC<PanelProps>,
   info: Info as FC<PanelProps>,
   custom: Custom as FC<PanelProps>,
+  labels: LabelsPanel as FC<PanelProps>,
   [HOST_VIEW_NAME]: Host as FC<PanelProps>,
 };
 
@@ -219,6 +221,12 @@ const panelViews = [
     component: panelComponents.custom as FC<PanelProps>,
     active: false,
   },
+  {
+    name: "labels",
+    title: "Labels",
+    component: panelComponents.labels,
+    active: false,
+  },
 ];
 
 // Custom tab for special tags; will be placed in "regions-relations" panel by default
@@ -253,7 +261,7 @@ export const enterprisePanelDefault: Record<string, PanelBBox> = {
     detached: false,
     alignment: Side.right,
     maxHeight: DEFAULT_PANEL_MAX_HEIGHT,
-    panelViews: [panelViews[0], panelViews[2]],
+    panelViews: [panelViews[0], panelViews[2], panelViews[6]],
   },
 };
 
@@ -286,7 +294,7 @@ export const openSourcePanelDefault: Record<string, PanelBBox> = {
     detached: false,
     alignment: Side.right,
     maxHeight: DEFAULT_PANEL_MAX_HEIGHT,
-    panelViews: [panelViews[0], panelViews[2]],
+    panelViews: [panelViews[0], panelViews[2], panelViews[6]],
   },
 };
 
@@ -308,7 +316,7 @@ export const partialEmptyBaseProps = {
   setSidePanelCollapsed: () => {},
   dragTop: false,
   dragBottom: false,
-  panelViews: [panelViews[0], panelViews[1], panelViews[2], panelViews[3], panelViews[4]],
+  panelViews: [panelViews[0], panelViews[1], panelViews[2], panelViews[6], panelViews[3], panelViews[4]],
 };
 
 export const resizers = ["top-left", "top-right", "bottom-left", "bottom-right", "top", "bottom", "right", "left"];
@@ -328,14 +336,35 @@ export const checkCollapsedPanelsHaveData = (collapsedSide: PanelsCollapsed, pan
   return collapsedCopy;
 };
 
+// Add the new tab to older saved layouts without discarding panel sizes or positions.
+export const addLabelsTab = (state: Record<string, PanelBBox>) => {
+  if (Object.values(state).some((panel) => panel.panelViews.some((view) => view.name === "labels"))) return state;
+  const target = Object.keys(state).find((key) => state[key].panelViews.some((view) => view.name === "relations"))
+    ?? Object.keys(state).find((key) => state[key].panelViews.some((view) => view.name === "regions"));
+  if (!target) return state;
+  const views = [...state[target].panelViews];
+  const relationIndex = views.findIndex((view) => view.name === "relations");
+  views.splice(relationIndex >= 0 ? relationIndex + 1 : views.length, 0, { ...panelViews[6] });
+  return { ...state, [target]: { ...state[target], panelViews: views } };
+};
+
+export const syncLabelsTab = (state: Record<string, PanelBBox>, enabled: boolean) => {
+  if (enabled) return renameKeys(addLabelsTab(state));
+  const filtered = Object.fromEntries(Object.entries(state).map(([key, panel]) => [
+    key, { ...panel, panelViews: panel.panelViews.filter((view) => view.name !== "labels") },
+  ]));
+  return renameKeys(stateRemovePanelEmptyViews(filtered));
+};
+
 export const restorePanel = (
   showComments: boolean,
   showCustomTab: ShowCustomTab = false,
   hostTitle: string | false = false,
+  showLabels = false,
 ): StoredPanelState => {
   const previousState = window.localStorage.getItem("panelState");
   const parsed: StoredPanelState | null = previousState && JSON.parse(previousState);
-  const panelData = parsed && parsed.panelData;
+  const panelData = parsed?.panelData ? syncLabelsTab(parsed.panelData, showLabels) : null;
   const defaultCollapsedSide = { [Side.left]: false, [Side.right]: false };
   const collapsedSide = parsed?.collapsedSide ?? defaultCollapsedSide;
   // The host tab is not counted: whether a host offers it says nothing about how old the saved layout is.
@@ -345,12 +374,12 @@ export const restorePanel = (
       .flatMap((panel) => panel.panelViews)
       .filter((view) => view.name !== HOST_VIEW_NAME);
   // don't use comments and custom tabs anywhere if it's disabled
-  const countOfAllAvailableTabs = panelViews.length - (showComments ? 0 : 1) - (showCustomTab ? 0 : 1);
+  const countOfAllAvailableTabs = panelViews.length - (showComments ? 0 : 1) - (showCustomTab ? 0 : 1) - (showLabels ? 0 : 1);
 
   // stored state can have less tabs than available, for example if it was stored on old version
   // or if comments were enabled; then return default state
   if (!allTabs || allTabs.length !== countOfAllAvailableTabs) {
-    let defaultPanel = showComments ? enterprisePanelDefault : openSourcePanelDefault;
+    let defaultPanel = syncLabelsTab(showComments ? enterprisePanelDefault : openSourcePanelDefault, showLabels);
     if (showComments && showCustomTab) {
       defaultPanel = fixCustomTab(defaultPanel, "regions-relations", showCustomTab);
     }

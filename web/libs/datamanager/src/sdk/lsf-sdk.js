@@ -273,6 +273,7 @@ export class LSFWrapper {
         ...restOptions.project,
         id: this.project.id,
         cpc_integration: this.project.cpc_integration === true,
+        labels_panel: this.project.labels_panel === true,
       },
     };
 

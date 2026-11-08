@@ -216,6 +216,7 @@ class Project(ProjectMixin, FsmHistoryStateModel):
     # None inherits this installation's default; explicit False always stays off.
     cpc_integration = models.BooleanField(null=True, default=None)
     folder_navigation = models.BooleanField(null=True, default=None)
+    labels_panel = models.BooleanField(null=True, default=None)
 
     def workflow_feature_enabled(self, name):
         value = getattr(self, name)
