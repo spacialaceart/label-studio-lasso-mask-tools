@@ -32,11 +32,42 @@ const square = [
 ];
 
 describe("Image segmentation - Lasso tools", () => {
+  it("keeps compact lasso controls floating above Submit while the image content scrolls", () => {
+    init();
+    tool("freehand");
+    let panelBottom;
+    const checkDock = ($panel) => {
+      const panel = $panel[0];
+      const bar = panel.closest(".lsf-bottombar");
+      expect(bar, "docked in the Submit bar").to.exist;
+      const bounds = panel.getBoundingClientRect();
+      const barBounds = bar.getBoundingClientRect();
+      expect(barBounds.top - bounds.bottom, "gap above Submit bar").to.be.within(0, 8);
+      expect(bounds.left).to.be.at.least(barBounds.left);
+      expect(bounds.right).to.be.at.most(barBounds.right);
+      if (panelBottom !== undefined) expect(bounds.bottom).to.equal(panelBottom);
+      panelBottom = bounds.bottom;
+    };
+    cy.get('[aria-label="Lasso options"]').should("have.length", 1).and("be.visible").should(checkDock);
+    cy.get(".lsf-main-content").scrollTo("bottom", { ensureScrollable: false });
+    cy.get('[aria-label="Lasso options"]').should("be.visible").should(checkDock);
+    cy.screenshot("floating-lasso-controls", { capture: "viewport" });
+    cy.get('[aria-label="Lasso action"]').select("subtract");
+    cy.get('[aria-label="Lasso options"]').should("contain", "Select one mask").should(checkDock);
+    cy.get('[aria-label="brush-tool"]').click();
+    cy.get('[aria-label="Lasso options"]').should("not.exist");
+  });
+
   it("merges selected masks into the oldest ID and reloads the result", () => {
     init();
     tool();
     polygon(square);
-    polygon([[0.65, 0.65], [0.9, 0.65], [0.9, 0.9], [0.65, 0.9]]);
+    polygon([
+      [0.65, 0.65],
+      [0.9, 0.65],
+      [0.9, 0.9],
+      [0.65, 0.9],
+    ]);
     let oldestID;
     cy.window().then((win) => {
       const annotation = win.Htx.annotationStore.selected;
@@ -61,7 +92,12 @@ describe("Image segmentation - Lasso tools", () => {
     init();
     tool();
     polygon(square);
-    polygon([[0.65, 0.65], [0.9, 0.65], [0.9, 0.9], [0.65, 0.9]]);
+    polygon([
+      [0.65, 0.65],
+      [0.9, 0.65],
+      [0.9, 0.9],
+      [0.65, 0.9],
+    ]);
     cy.window().then((win) => {
       const annotation = win.Htx.annotationStore.selected;
       annotation.selectAreas(annotation.regionStore.regions);
@@ -78,8 +114,18 @@ describe("Image segmentation - Lasso tools", () => {
     init();
     tool();
     polygon(square);
-    polygon([[0.65, 0.65], [0.9, 0.65], [0.9, 0.9], [0.65, 0.9]]);
-    polygon([[0.7, 0.1], [0.9, 0.1], [0.9, 0.3], [0.7, 0.3]]);
+    polygon([
+      [0.65, 0.65],
+      [0.9, 0.65],
+      [0.9, 0.9],
+      [0.65, 0.9],
+    ]);
+    polygon([
+      [0.7, 0.1],
+      [0.9, 0.1],
+      [0.9, 0.3],
+      [0.7, 0.3],
+    ]);
     cy.window().then((win) => {
       const annotation = win.Htx.annotationStore.selected;
       const [oldest, newer, external] = [...annotation.regionStore.regions].sort((a, b) => a.ouid - b.ouid);
@@ -112,7 +158,12 @@ describe("Image segmentation - Lasso tools", () => {
     polygon(square);
     cy.window().then((win) => win.Htx.annotationStore.selected.unselectAreas());
     Labels.select("Other");
-    polygon([[0.65, 0.65], [0.9, 0.65], [0.9, 0.9], [0.65, 0.9]]);
+    polygon([
+      [0.65, 0.65],
+      [0.9, 0.65],
+      [0.9, 0.9],
+      [0.65, 0.9],
+    ]);
     cy.window().then((win) => {
       const annotation = win.Htx.annotationStore.selected;
       annotation.selectAreas(annotation.regionStore.regions);
@@ -170,7 +221,7 @@ describe("Image segmentation - Lasso tools", () => {
       expect(original.serializeAnnotation()).to.have.length(0);
       store.selectAnnotation(original.id);
     });
-    cy.get('[aria-label="Lasso options"]').should("not.contain", "Apply selection");
+    cy.contains('[aria-label="Lasso options"] button', "Apply selection").should("not.be.visible");
     Labels.select("Coral");
     tool();
     polygon(square);
@@ -291,6 +342,55 @@ describe("Image segmentation - Lasso tools", () => {
     Sidebar.hasRegions(1);
     checkPixel(50, 50, 255);
     checkPixel(150, 150, 0);
+  });
+  it("keeps the zoomed and panned image stationary when a freehand stroke starts and ends", () => {
+    init();
+    tool("freehand");
+    cy.get('[aria-label="zoom-in"]').click().click();
+    ImageView.drawingArea
+      .trigger("mousedown", 300, 250, { eventConstructor: "MouseEvent", button: 1, buttons: 4 })
+      .trigger("mousemove", 330, 270, { eventConstructor: "MouseEvent", buttons: 4, movementX: 30, movementY: 20 })
+      .trigger("mouseup", 330, 270, { eventConstructor: "MouseEvent", button: 1 });
+
+    let initial;
+    const snapshot = (element) => {
+      const object = element.ownerDocument.defaultView.Htx.annotationStore.selected.objects.find(
+        (item) => item.type === "image",
+      );
+      const { x, y, width, height } = element.getBoundingClientRect();
+      return {
+        x,
+        y,
+        width,
+        height,
+        zoom: object.zoomScale,
+        panX: object.zoomingPositionX,
+        panY: object.zoomingPositionY,
+      };
+    };
+    // Let zoom/pan and the image ResizeObserver settle before recording the viewport.
+    ImageView.drawingArea.should(($el) => expect(snapshot($el[0]).zoom).to.be.greaterThan(1));
+    cy.wait(100);
+    ImageView.drawingArea.then(($el) => {
+      initial = snapshot($el[0]);
+    });
+    const unchanged = () => ImageView.drawingArea.should(($el) => expect(snapshot($el[0])).to.deep.equal(initial));
+    const start = () =>
+      ImageView.drawingArea.trigger("mousedown", 300, 250, { eventConstructor: "MouseEvent", button: 0, buttons: 1 });
+
+    start();
+    cy.contains("button", "Apply selection").should("be.visible");
+    unchanged();
+    cy.get("body").type("{esc}");
+    unchanged();
+    start();
+    unchanged();
+    ImageView.drawingArea
+      .trigger("mousemove", 400, 250, { eventConstructor: "MouseEvent", buttons: 1 })
+      .trigger("mousemove", 400, 350, { eventConstructor: "MouseEvent", buttons: 1 })
+      .trigger("mouseup", 300, 350, { eventConstructor: "MouseEvent", button: 0 });
+    Sidebar.hasRegions(1);
+    unchanged();
   });
   it("runs magnetic edge tracing in a worker and saves a normal brush mask", () => {
     init();

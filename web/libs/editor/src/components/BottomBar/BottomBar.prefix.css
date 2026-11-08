@@ -12,6 +12,23 @@
   position: absolute;
   bottom: 0;
 
+  &__lasso-controls {
+    position: absolute;
+    bottom: 100%;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding-bottom: 6px;
+    pointer-events: none;
+
+    & > * {
+      pointer-events: auto;
+    }
+  }
+
   &__group {
     display: flex;
     align-items: stretch;

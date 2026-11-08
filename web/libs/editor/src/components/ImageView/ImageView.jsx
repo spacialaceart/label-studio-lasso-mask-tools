@@ -1092,8 +1092,6 @@ export default observer(
 
       return (
         <>
-        {/* Outside ObjectTag so the panel never joins the image/toolbar flex row */}
-        {imageIsLoaded && toolsReady && !isViewingAll && <LassoControls item={item} />}
         <ObjectTag item={item} className={wrapperClasses.join(" ")}>
           {paginationEnabled ? (
             <div
@@ -1213,6 +1211,12 @@ export default observer(
             </div>
           )}
         </ObjectTag>
+        {/* Below the image, before subsequent labeling controls, outside the image/toolbar flex row. */}
+        {imageIsLoaded && (
+          <div style={{ marginTop: 8 }}>
+            {toolsReady && !isViewingAll && !store.hasInterface("topbar") && <LassoControls item={item} />}
+          </div>
+        )}
         </>
       );
     }

@@ -73,6 +73,23 @@ export const LassoControls = observer(({ item }) => {
             <option value="subtract">Subtract from mask</option>
           </select>
         </label>
+        {/* Keep action space stable while drawing, alongside the tool options. */}
+        <div className={styles.actions} style={{ visibility: tool.isDrawing ? "visible" : "hidden" }}>
+          <button type="button" onClick={() => tool.finishDrawing()} disabled={tool.busy || tool.points.length < 3}>
+            Apply selection
+          </button>
+          {tool.kind !== "freehand" && (
+            <button type="button" onClick={() => tool.undoPoint()} disabled={tool.busy}>
+              Undo point
+            </button>
+          )}
+          <button type="button" onClick={() => tool.cancelDrawing()}>
+            Cancel
+          </button>
+          <span role={tool.busy ? "status" : undefined} style={{ visibility: tool.busy ? undefined : "hidden" }}>
+            {tool.kind === "magnetic" ? "Tracing edges…" : "Applying…"}
+          </span>
+        </div>
       </div>
       {tool.kind === "magnetic" && (
         <div className={styles.row}>
@@ -111,22 +128,6 @@ export const LassoControls = observer(({ item }) => {
       </div>
       {tool.operation !== "new" && !tool.editableMask && !tool.isDrawing && (
         <div className={styles.hint}>Select one mask in the Regions list to edit it.</div>
-      )}
-      {tool.isDrawing && (
-        <div className={styles.row}>
-          <button type="button" onClick={() => tool.finishDrawing()} disabled={tool.busy || tool.points.length < 3}>
-            Apply selection
-          </button>
-          {tool.kind !== "freehand" && (
-            <button type="button" onClick={() => tool.undoPoint()} disabled={tool.busy}>
-              Undo point
-            </button>
-          )}
-          <button type="button" onClick={() => tool.cancelDrawing()}>
-            Cancel
-          </button>
-          {tool.busy && <span role="status">{tool.kind === "magnetic" ? "Tracing edges…" : "Applying…"}</span>}
-        </div>
       )}
       {tool.error && (
         <div className={styles.error} role="alert">
