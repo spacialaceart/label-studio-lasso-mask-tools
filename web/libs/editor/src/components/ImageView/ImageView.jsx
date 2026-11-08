@@ -26,6 +26,7 @@ import { InteractiveActionsBar } from "../../ml-interactive/InteractiveActionsBa
 import { Pagination } from "../../common/Pagination/Pagination";
 import { Image } from "./Image";
 import { LassoControls, LassoOverlay } from "./LassoOverlay";
+import { CpcControls, CpcOverlay } from "./CpcOverlay";
 
 Konva.showWarnings = false;
 
@@ -1215,6 +1216,7 @@ export default observer(
         {imageIsLoaded && (
           <div style={{ marginTop: 8 }}>
             {toolsReady && !isViewingAll && !store.hasInterface("topbar") && <LassoControls item={item} />}
+            {store.project?.cpc_integration === true && <CpcControls item={item} />}
           </div>
         )}
         </>
@@ -1476,6 +1478,7 @@ const StageContent = observer(({ item, store, state, crosshairRef }) => {
       <Selection item={item} isPanning={state.isPanning} />
       <DrawingRegion item={item} />
       <LassoOverlay item={item} />
+      {store.project?.cpc_integration === true && <CpcOverlay item={item} />}
       {item.smoothingEnabled === false && <PixelGridLayer item={item} />}
 
       {item.crosshair && <Crosshair ref={crosshairRef} width={item.containerWidth} height={item.containerHeight} />}

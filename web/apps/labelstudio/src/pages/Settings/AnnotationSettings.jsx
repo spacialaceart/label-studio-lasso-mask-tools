@@ -70,6 +70,15 @@ export const AnnotationSettings = () => {
               {(collab !== null ? collab : project.show_collab_predictions) && <ModelVersionSelector />}
             </Form.Row>
 
+            <Divider height={32} />
+            <Form.Row columnCount={1}>
+              <Toggle
+                label="CPC integration"
+                name="cpc_integration"
+                description="Show CPC sidecar overlay controls for local images."
+              />
+            </Form.Row>
+
             <Form.Actions>
               <Form.Indicator>
                 <span case="success">Saved!</span>

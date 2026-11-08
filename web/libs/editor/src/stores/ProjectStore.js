@@ -9,6 +9,7 @@ const ProjectStore = types
      * Project ID
      */
     id: types.identifierNumber,
+    cpc_integration: false,
   })
   .views((self) => ({
     get app() {

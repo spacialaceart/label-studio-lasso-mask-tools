@@ -269,6 +269,11 @@ export class LSFWrapper {
       onPrevTask: this.onPrevTask,
 
       ...restOptions,
+      project: {
+        ...restOptions.project,
+        id: this.project.id,
+        cpc_integration: this.project.cpc_integration === true,
+      },
     };
 
     this.initLabelStudio(lsfProperties);

@@ -1,6 +1,7 @@
 """This file and its contents are licensed under the Apache License 2.0. Please see the included NOTICE for copyright information and LICENSE for a copy of the license."""
 
 from data_manager import api, views
+from data_manager.cpc_api import TaskCPCAPI
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
@@ -9,6 +10,7 @@ router = DefaultRouter()
 router.register(r'views', api.ViewAPI, basename='view')
 
 urlpatterns = [
+    path('api/dm/tasks/<int:pk>/cpc/', TaskCPCAPI.as_view(), name='task-cpc'),
     path('api/dm/', include((router.urls, app_name), namespace='api')),
     path('api/dm/columns/', api.ProjectColumnsAPI.as_view(), name='dm-columns'),
     path('api/dm/projects/<int:pk>/folders/', api.ProjectFoldersAPI.as_view(), name='dm-folders'),

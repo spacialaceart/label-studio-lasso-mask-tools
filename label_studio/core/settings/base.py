@@ -19,6 +19,10 @@ from django.core.exceptions import ImproperlyConfigured
 
 from label_studio.core.utils.params import get_bool_env, get_env, get_env_list, has_env
 
+from core.optional_features import load_workflow_defaults
+
+WORKFLOW_DEFAULTS = load_workflow_defaults()
+
 formatter = 'standard'
 JSON_LOG = get_bool_env('JSON_LOG', False)
 if JSON_LOG:

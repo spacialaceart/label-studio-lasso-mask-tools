@@ -252,6 +252,9 @@ class ProjectSerializer(FlexFieldsModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        for name in ('cpc_integration',):
+            if name in data:
+                data[name] = instance.workflow_feature_enabled(name)
         # Rows saved before the allowlist was narrowed (or copied past the serializer) must not reach the browser raw
         instruction = data.get('expert_instruction')
         if instruction and '<' in instruction:
@@ -305,6 +308,7 @@ class ProjectSerializer(FlexFieldsModelSerializer):
             'label_config',
             'expert_instruction',
             'show_instruction',
+            'cpc_integration',
             'show_skip_button',
             'enable_empty_annotation',
             'show_annotation_history',

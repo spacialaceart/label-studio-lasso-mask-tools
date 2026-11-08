@@ -213,6 +213,14 @@ class Project(ProjectMixin, FsmHistoryStateModel):
     expert_instruction = models.TextField(
         _('expert instruction'), blank=True, null=True, default='', help_text='Labeling instructions in HTML format'
     )
+    # None inherits this installation's default; explicit False always stays off.
+    cpc_integration = models.BooleanField(null=True, default=None)
+    folder_navigation = models.BooleanField(null=True, default=None)
+
+    def workflow_feature_enabled(self, name):
+        value = getattr(self, name)
+        return settings.WORKFLOW_DEFAULTS.get(name, False) if value is None else value
+
     show_instruction = models.BooleanField(
         _('show instruction'), default=False, help_text='Show instructions to the annotator before they start'
     )

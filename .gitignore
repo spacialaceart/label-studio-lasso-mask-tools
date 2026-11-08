@@ -98,3 +98,4 @@ run-with-sam2-large.bat
 run-with-sam2.bat
 WINDOWS_RUN.md
 build-release-wheel.bat
+workflow.local.json
