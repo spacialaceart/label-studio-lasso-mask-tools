@@ -1,0 +1,31 @@
+.panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.field select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 4px;
+  color: var(--color-neutral-content);
+  background: var(--color-neutral-background);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 50%;
+}

@@ -26,6 +26,7 @@ import Result from "../../regions/Result";
 import Utils from "../../utils";
 import { dedupeAnnotationWireResults } from "../../utils/dedupeAnnotationWireResults";
 import { mergeMasksReason } from "../../utils/mergeMasks";
+import { assertOverlapCurrent } from "../../utils/removeMaskOverlap";
 import { FF_DEV_1284, FF_DEV_3391, FF_LSDV_4583, FF_REVIEWER_FLOW, isFF } from "../../utils/feature-flags";
 import { delay, isDefined } from "../../utils/utilities";
 import { CommentStore } from "../Comment/CommentStore";
@@ -723,6 +724,27 @@ const _Annotation = types
       // If the annotation was in a drawing state and the user deletes it, we need to reset the drawing state
       // to avoid the user being stuck in a drawing state
       self.setIsDrawing(false);
+    },
+
+    removeMaskOverlap(prepared) {
+      assertOverlapCurrent(prepared);
+      const { keep, target, removed, empty, rle, bbox } = prepared;
+      if (keep.annotation !== self) throw new Error("The annotation changed.");
+      if (!removed) return;
+      self.history.freeze("remove-mask-overlap");
+      self.pauseAutosave();
+      try {
+        if (empty) {
+          self.unselectAreas();
+          self.deleteRegion(target);
+          self.selectArea(keep);
+        } else {
+          target.replaceMask(Array.from(rle), bbox);
+        }
+      } finally {
+        self.history.unfreeze("remove-mask-overlap");
+        self.startAutosave();
+      }
     },
 
     mergeMasks(regions, rle) {

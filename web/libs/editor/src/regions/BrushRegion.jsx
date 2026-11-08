@@ -165,6 +165,9 @@ const Model = types
     hideable: true,
     layerRef: undefined,
     rleBbox: null,
+    rleBboxSource: null,
+    rleBboxWidth: 0,
+    rleBboxHeight: 0,
   }))
   .views((self) => {
     return {
@@ -184,6 +187,13 @@ const Model = types
       },
       get hasEraserTouches() {
         return self.touches.some((t) => t.type === "eraser");
+      },
+      get currentRLEBounds() {
+        return self.rleBboxSource === self.rle &&
+          self.rleBboxWidth === self.currentImageEntity?.naturalWidth &&
+          self.rleBboxHeight === self.currentImageEntity?.naturalHeight
+          ? self.rleBbox
+          : null;
       },
       get bboxCoordsCanvas() {
         let touchBbox = null;
@@ -306,6 +316,9 @@ const Model = types
             right: maxX + 1,
             bottom: maxY + 1,
           };
+          self.rleBboxSource = self.rle;
+          self.rleBboxWidth = nw;
+          self.rleBboxHeight = nh;
         } catch {
           self.rleBbox = null;
         }
@@ -426,13 +439,18 @@ const Model = types
 
       // A lasso operation has already composited the bitmap and all brush/eraser
       // strokes. Replace them atomically so old strokes cannot repaint a cutout.
-      replaceMask(rle) {
+      replaceMask(rle, bbox) {
         self.currentTouch = null;
         self.touches.clear();
         self.maskDataURL = undefined;
         maskImage = null;
         self.rle = rle;
-        self.updateRLEBBox();
+        if (bbox) {
+          self.rleBbox = bbox;
+          self.rleBboxSource = self.rle;
+          self.rleBboxWidth = self.currentImageEntity.naturalWidth;
+          self.rleBboxHeight = self.currentImageEntity.naturalHeight;
+        } else self.updateRLEBBox();
         self.needsUpdate++;
         self.notifyDrawingFinished();
       },

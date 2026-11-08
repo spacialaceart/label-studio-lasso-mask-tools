@@ -15,6 +15,7 @@ import { EmptyState } from "../Components/EmptyState";
 import { IconCursor, IconRelationLink } from "@humansignal/icons";
 import { getDocsUrl } from "../../../utils/docs";
 import { MergeMasksButton } from "./MergeMasksButton";
+import { RemoveMaskOverlapControl } from "./RemoveMaskOverlapControl";
 
 interface DetailsPanelProps extends PanelProps {
   regions: any;
@@ -236,6 +237,7 @@ const RegionsPanel: FC<{ regions: any }> = observer(function RegionsPanel({ regi
   return (
     <div>
       <MergeMasksButton selection={regions} />
+      <RemoveMaskOverlapControl selection={regions} />
       {regions.list.map((reg: any) => {
         return <SelectedRegion key={reg.id} region={reg} />;
       })}
