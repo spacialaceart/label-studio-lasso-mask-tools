@@ -10,6 +10,7 @@ from core.feature_flags import flag_set
 from core.permissions import all_permissions
 from core.redis import start_job_async_or_sync
 from core.utils.common import batch
+from core.utils.exceptions import extract_message
 from django.conf import settings
 from django.core.files import File
 from django.core.files.storage import FileSystemStorage
@@ -22,13 +23,13 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_sche
 from projects.models import Project
 from ranged_fileresponse import RangedFileResponse
 from rest_framework import generics, status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import APIException, NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from tasks.models import Task
 
 from .functions import get_export_hostname
-from .models import ConvertedFormat, DataExport, Export
+from .models import ConvertedFormat, DataExport, Export, delete_file_from_storage
 from .serializers import (
     ExportConvertSerializer,
     ExportCreateSerializer,
@@ -38,6 +39,11 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class ExportFileDeleteError(APIException):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    default_detail = 'Could not delete file from storage'
 
 
 @method_decorator(
@@ -182,19 +188,14 @@ class ExportAPI(generics.RetrieveAPIView):
 
     def get_task_queryset(self, queryset):
         # Import here to avoid circular dependencies
-        from core.feature_flags import flag_set
+        from fsm.serializer_fields import fsm_state_fields_enabled
         from tasks.models import Annotation
 
         # Create a prefetch for annotations with FSM state
         annotations_qs = Annotation.objects.all()
 
-        # Only annotate FSM state if both feature flags are enabled
-        user = getattr(self.request, 'user', None)
-        if (
-            flag_set('fflag_feat_fit_568_finite_state_management', user=user)
-            and flag_set('fflag_feat_fit_710_fsm_state_fields', user=user)
-            and hasattr(annotations_qs, 'with_state')
-        ):
+        # Only annotate FSM state if FSM state fields are enabled
+        if fsm_state_fields_enabled() and hasattr(annotations_qs, 'with_state'):
             annotations_qs = annotations_qs.with_state()
 
         qs = queryset.select_related('project').prefetch_related(
@@ -202,11 +203,7 @@ class ExportAPI(generics.RetrieveAPIView):
         )
 
         # Add FSM state annotation to tasks as well to avoid N+1 queries during export
-        if (
-            flag_set('fflag_feat_fit_568_finite_state_management', user=user)
-            and flag_set('fflag_feat_fit_710_fsm_state_fields', user=user)
-            and hasattr(qs, 'with_state')
-        ):
+        if fsm_state_fields_enabled() and hasattr(qs, 'with_state'):
             qs = qs.with_state()
         return qs
 
@@ -246,7 +243,13 @@ class ExportAPI(generics.RetrieveAPIView):
         logger.debug('Prepare export files')
 
         export_file, content_type, filename = DataExport.generate_export_file(
-            project, tasks, export_type, download_resources, request.GET, hostname=get_export_hostname(request)
+            project,
+            tasks,
+            export_type,
+            download_resources,
+            request.GET,
+            hostname=get_export_hostname(request),
+            user=request.user,
         )
 
         r = FileResponse(export_file, as_attachment=True, content_type=content_type, filename=filename)
@@ -465,6 +468,23 @@ class ExportDetailAPI(generics.RetrieveDestroyAPIView):
     def delete(self, *args, **kwargs):
         return super().delete(*args, **kwargs)
 
+    def perform_destroy(self, instance):
+        field_files = [instance.file] + [
+            converted_format.file for converted_format in instance.converted_formats.all()
+        ]
+        # Files go after the rows in one transaction: a storage error rolls the rows back,
+        # so they keep pointing at their files and the delete can be retried
+        with transaction.atomic():
+            instance.delete()
+            for field_file in field_files:
+                try:
+                    delete_file_from_storage(field_file)
+                except Exception as e:
+                    raise ExportFileDeleteError(
+                        'Could not delete file from storage. Check that your user has permissions to delete files: %s'
+                        % extract_message(e)
+                    ) from e
+
     def _get_project(self):
         project_pk = self.kwargs.get('pk')
         project = generics.get_object_or_404(
@@ -618,7 +638,11 @@ def async_convert(converted_format_id, export_type, project, hostname, download_
         converted_format.save(update_fields=['status'])
 
     snapshot = converted_format.export
-    converted_file = snapshot.convert_file(export_type, download_resources=download_resources, hostname=hostname)
+    # Jobs queued before conversions recorded their user fall back to the snapshot's
+    user = converted_format.created_by or snapshot.created_by
+    converted_file = snapshot.convert_file(
+        export_type, download_resources=download_resources, hostname=hostname, user=user
+    )
     if converted_file is None:
         raise ValidationError('No converted file found, probably there are no annotations in the export snapshot')
     md5 = Export.eval_md5(converted_file)
@@ -698,7 +722,7 @@ class ExportConvertAPI(generics.CreateAPIView):
 
         converted_format, created = ConvertedFormat.objects.exclude(
             status=ConvertedFormat.Status.FAILED
-        ).get_or_create(export=snapshot, export_type=export_type)
+        ).get_or_create(export=snapshot, export_type=export_type, defaults={'created_by': request.user})
 
         if not created:
             raise ValidationError(f'Conversion to {export_type} already started')

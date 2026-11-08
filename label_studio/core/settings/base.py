@@ -309,6 +309,8 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ('rest_framework.renderers.JSONRenderer',),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'PAGE_SIZE': 100,
+    # DRF 3.18 switched many=True validation errors to a dict; keep the list format API clients rely on
+    'LIST_SERIALIZER_ERRORS_AS_DICT': False,
 }
 SILENCED_SYSTEM_CHECKS += ['rest_framework.W001']
 
@@ -1133,9 +1135,13 @@ QS_ITERATOR_DEFAULT_CHUNK_SIZE = int(get_env('QS_ITERATOR_DEFAULT_CHUNK_SIZE', 1
 DM_MAX_USERS_TO_DISPLAY = int(get_env('DM_MAX_USERS_TO_DISPLAY', 10))
 
 # Base FSM (Finite State Machine) Configuration for Label Studio
+FSM_ENABLED = get_bool_env('FSM_ENABLED', False)
 FSM_CACHE_TTL = 300  # Cache TTL in seconds (5 minutes)
 FSM_SYNC_PROJECT_STATE = 'fsm.project_transitions.sync_project_state'
 FSM_INFERENCE_FUNCTION = 'fsm.state_inference._get_or_infer_state'
+
+# Projects a user can access in their active organization, as one queryset (LSE adds role/workspace rules)
+ACCESSIBLE_PROJECTS_FUNCTION = 'projects.functions.access.accessible_projects'
 FSM_INITIALIZATION_TRANSITION_NAME = 'fsm.utils._get_initialization_transition_name'
 
 # Used for async migrations. In LSE this is set to a real queue name, including here so we

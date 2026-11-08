@@ -27,7 +27,7 @@ import Utils from "../../utils";
 import { dedupeAnnotationWireResults } from "../../utils/dedupeAnnotationWireResults";
 import { mergeMasksReason } from "../../utils/mergeMasks";
 import { assertOverlapCurrent } from "../../utils/removeMaskOverlap";
-import { FF_DEV_1284, FF_DEV_3391, FF_LSDV_4583, FF_REVIEWER_FLOW, isFF } from "../../utils/feature-flags";
+import { FF_DEV_1284, FF_DEV_3391, FF_REVIEWER_FLOW, isFF } from "../../utils/feature-flags";
 import { delay, isDefined } from "../../utils/utilities";
 import { CommentStore } from "../Comment/CommentStore";
 import RegionStore from "../RegionStore";
@@ -181,6 +181,9 @@ const _Annotation = types
 
     // LSE review badge / filter state from API accepted_state (stub and full payloads).
     acceptedState: types.maybeNull(types.string),
+    // FIT-3230: the current user's own accept is live (API accepted_by_current_user), so their
+    // plain Accept is spent; another reviewer can still accept (multi-layer review).
+    acceptedByCurrentUser: types.optional(types.boolean, false),
 
     // @todo use types.Date
     draftSaved: types.maybe(types.string),
@@ -279,6 +282,7 @@ const _Annotation = types
       ground_truth: sn.honeypot ?? sn.ground_truth ?? false,
       skipped: sn.skipped || sn.was_cancelled,
       acceptedState: sn.accepted_state ?? sn.acceptedState ?? null,
+      acceptedByCurrentUser: Boolean(sn.accepted_by_current_user ?? sn.acceptedByCurrentUser),
     };
   })
   .views((self) =>
@@ -487,6 +491,10 @@ const _Annotation = types
     /** LSE review badge / History — must run inside an MST action (FIT-2498). */
     setAcceptedState(val) {
       self.acceptedState = val ?? null;
+    },
+
+    setAcceptedByCurrentUser(val) {
+      self.acceptedByCurrentUser = Boolean(val);
     },
 
     setReadonly(val) {
@@ -1579,15 +1587,13 @@ const _Annotation = types
 
           area = createArea(areaSnapshot);
 
-          if (isFF(FF_LSDV_4583)) {
-            // store copy of the original result inside the area
-            // useful when you need to serialize a result without
-            // updating it from current/actual data
-            // For safety reasons this object is always readonly
-            Object.defineProperty(area, "_rawResult", {
-              value: Object.freeze(structuredClone(obj)),
-            });
-          }
+          // store copy of the original result inside the area
+          // useful when you need to serialize a result without
+          // updating it from current/actual data
+          // For safety reasons this object is always readonly
+          Object.defineProperty(area, "_rawResult", {
+            value: Object.freeze(structuredClone(obj)),
+          });
         }
 
         const newResult = { ...data, id: resultId, type, value, from_name, to_name };

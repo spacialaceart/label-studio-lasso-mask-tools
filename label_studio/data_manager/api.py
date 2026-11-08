@@ -3,7 +3,6 @@
 import logging
 
 from core.current_request import CurrentContext
-from core.feature_flags import flag_set
 from core.permissions import ViewClassPermission, all_permissions
 from core.utils.common import int_from_request, load_func
 from core.utils.params import bool_from_request
@@ -27,6 +26,7 @@ from django.utils.decorators import method_decorator
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, extend_schema
+from fsm.serializer_fields import fsm_state_fields_enabled
 from io_storages.functions import get_import_storage_link_prefetches
 from projects.models import Project
 from projects.serializers import ProjectSerializer
@@ -402,9 +402,7 @@ class TaskListAPI(generics.ListCreateAPIView):
     pagination_class = TaskPagination
 
     def _ensure_state_field_for_evaluation(self, fields_for_evaluation, request):
-        if not (
-            CurrentContext.is_fsm_enabled() and flag_set('fflag_feat_fit_710_fsm_state_fields', user=request.user)
-        ):
+        if not (CurrentContext.is_fsm_enabled() and fsm_state_fields_enabled()):
             return fields_for_evaluation
 
         fields_for_evaluation = list(fields_for_evaluation)
@@ -791,9 +789,7 @@ class ProjectActionsAPI(APIView):
         # keep ordering only when needed, otherwise drop to avoid expensive sorts/annotations
         action_id = request.GET.get('id', None)
         prepare_params = get_prepare_params(request, project)
-        if not flag_set(
-            'fflag_root_223_optimize_delete_predictions', organization=project.organization
-        ) or action_id in ['next_task', 'remove_duplicates']:
+        if action_id in ['next_task', 'remove_duplicates']:
             queryset = Task.prepared.only_filtered(prepare_params=prepare_params)
         else:
             prepare_params.ordering = []

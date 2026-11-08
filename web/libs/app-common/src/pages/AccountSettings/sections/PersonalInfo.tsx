@@ -1,6 +1,6 @@
 import { type FormEventHandler, useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { Badge, Button, InputFile, ToastType, Typography, useToast, Userpic } from "@humansignal/ui";
+import { Badge, Button, InputFile, ToastType, Typography, useToast, Avatar } from "@humansignal/ui";
 import { getApiInstance } from "@humansignal/core";
 import { getAccountSettingsPersonalInfoExtras, useAccountSettingsExtension } from "../extensions";
 import { useReportProfileDirty } from "../ProfileDirtyContext";
@@ -25,7 +25,7 @@ const isRequiredProfileValueMissing = (isRequired: boolean, value: string) => is
 const RequiredFieldLabel = ({ label }: { label: string }) => (
   <span className={styles.requiredLabel}>
     <span>{label}</span>
-    <Badge variant="neutral" look="outline" shape="square" size="small">
+    <Badge variant="neutral" shape="square" size="small">
       Required
     </Badge>
   </span>
@@ -166,7 +166,7 @@ export const PersonalInfo = () => {
     <div className={styles.section} id="personal-info">
       <div className={styles.sectionContent}>
         <div className={styles.profilePhotoRow}>
-          <Userpic user={user} isInProgress={userInProgress} size={88} className={styles.userPic} />
+          <Avatar user={user} isInProgress={userInProgress} size="xlarge" className={styles.userPic} />
           <div className={`${styles.sectionContent} ${styles.profilePhotoControls}`}>
             <Typography className={styles.profilePhotoLabel} variant="label" size="medium">
               Profile Photo

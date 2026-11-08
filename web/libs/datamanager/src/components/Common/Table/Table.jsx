@@ -14,7 +14,6 @@ import { RowContextMenu } from "./RowContextMenu";
 import { prepareColumns } from "./utils";
 import { cn } from "../../../utils/bem";
 import { FieldsButton } from "../FieldsButton";
-import { FF_LOPS_E_3, isFF } from "../../../utils/feature-flags";
 import {
   FF_DM_SHARED_COLUMN_ORDER,
   FF_PROJECT_DM_COLUMN_DEFAULTS,
@@ -91,7 +90,7 @@ export const Table = observer(
     }, [sharedColumnOrder]);
     const listRef = useRef();
     const Decoration = useMemo(() => Decorator(decoration), [decoration]);
-    const { api, type, projectId } = useSDK();
+    const { api, projectId } = useSDK();
     const toolbarHeight = 41;
     const isQuickView = view.root.isLabeling;
     const [toolbarVisible, setToolbarVisible] = useState(true);
@@ -200,9 +199,6 @@ export const Table = observer(
         };
 
         const onTaskLoad = async (options = {}) => {
-          if (isFF(FF_LOPS_E_3) && type === "DE") {
-            return new Promise((resolve) => resolve(out));
-          }
           const response = await api.task({
             taskID: out.id,
             resolve_uri: options.resolveUri ?? false,
@@ -224,7 +220,6 @@ export const Table = observer(
                   <TaskSourceViewer
                     content={out}
                     onTaskLoad={onTaskLoad}
-                    sdkType={type}
                     storageKey={getTaskSourceViewerStorageKey(projectId)}
                     renderToggle={(toggle) => {
                       // Update modal header with toggle
@@ -297,24 +292,13 @@ export const Table = observer(
           column={contextMenu.column}
           view={view}
           api={api}
-          sdkType={type}
           projectId={projectId}
           onViewAnalytics={onViewAnalytics}
           onViewReviewerAnalytics={onViewReviewerAnalytics}
           onClose={closeContextMenu}
         />
       );
-    }, [
-      MenuComponent,
-      api,
-      closeContextMenu,
-      contextMenu,
-      onViewAnalytics,
-      onViewReviewerAnalytics,
-      projectId,
-      type,
-      view,
-    ]);
+    }, [MenuComponent, api, closeContextMenu, contextMenu, onViewAnalytics, onViewReviewerAnalytics, projectId, view]);
 
     const contextMenuPosition = useMemo(
       () => (contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null),

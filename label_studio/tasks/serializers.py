@@ -282,13 +282,9 @@ class AnnotationSerializer(ImmutableOnUpdateMixin, FlexFieldsModelSerializer):
         return name
 
     def to_representation(self, obj):
-        """Remove state field if feature flags are disabled"""
+        """Remove state field if FSM state fields are disabled"""
         ret = super().to_representation(obj)
-        user = CurrentContext.get_user()
-        if not (
-            flag_set('fflag_feat_fit_568_finite_state_management', user=user)
-            and flag_set('fflag_feat_fit_710_fsm_state_fields', user=user)
-        ):
+        if not fsm_state_fields_enabled(self.context):
             ret.pop('state', None)
         return ret
 
@@ -303,7 +299,7 @@ class AnnotationStubSerializer(FlexFieldsModelSerializer):
     Lightweight Annotation Serializer for lazy loading.
 
     Returns only minimal metadata needed for annotation list display.
-    Used when fflag_fix_all_fit_720_lazy_load_annotations is enabled
+    Used when the client requests annotation stubs
     to improve performance for tasks with many annotations.
 
     Fields included:
@@ -798,10 +794,7 @@ class BaseTaskSerializerBulk(serializers.ListSerializer):
 
                 # Strip FSM state field from predictions before validation
                 # Exported data may include 'state' which is not a valid prediction field
-                ff_user = self.project.organization.created_by
-                if flag_set('fflag_feat_fit_568_finite_state_management', user=ff_user) and flag_set(
-                    'fflag_feat_fit_710_fsm_state_fields', user=ff_user
-                ):
+                if fsm_state_fields_enabled(self.context):
                     prediction.pop('state', None)
 
                 # Validate prediction only when project label config is not default
@@ -1166,13 +1159,7 @@ class TaskWithAnnotationsAndPredictionsAndDraftsSerializer(TaskSerializer):
 
     def get_predictions(self, task):
         predictions = task.predictions
-        user = self._get_user()
-        if flag_set('ff_front_dev_1682_model_version_dropdown_070622_short', user=user or 'auto'):
-            active_ml_backends = task.project.get_active_ml_backends()
-            model_versions = active_ml_backends.values_list('model_version', flat=True)
-            logger.debug(f'Selecting predictions from active ML backend model versions: {model_versions}')
-            predictions = predictions.filter(model_version__in=model_versions)
-        elif task.project.model_version:
+        if task.project.model_version:
             predictions = predictions.filter(model_version=task.project.model_version)
         predictions = apply_prediction_ordering(predictions, self.context.get('annotations_ordering'))
         return PredictionSerializer(predictions, many=True, read_only=True, default=[], context=self.context).data

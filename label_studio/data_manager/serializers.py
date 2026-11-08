@@ -5,8 +5,6 @@ import os
 from typing import Any
 
 import ujson as json
-from core.current_request import CurrentContext
-from core.feature_flags import flag_set
 from data_manager.models import Filter, FilterGroup, View
 from data_manager.prepare_params import filters_schema, ordering_schema, selected_items_schema
 from django.conf import settings
@@ -15,7 +13,7 @@ from django.db.models import Max
 from django.utils import timezone
 from drf_spectacular.extensions import OpenApiSerializerFieldExtension
 from drf_spectacular.utils import extend_schema_field
-from fsm.serializer_fields import FSMStateField
+from fsm.serializer_fields import FSMStateField, fsm_state_fields_enabled
 from projects.models import Project
 from psycopg import errors as pg_errors
 from rest_framework import serializers, status
@@ -781,12 +779,8 @@ class DataManagerTaskSerializer(TaskSerializer):
             ret.pop('annotations', None)
         if not self.context.get('predictions'):
             ret.pop('predictions', None)
-        # Remove state field if feature flags are disabled
-        user = CurrentContext.get_user()
-        if not (
-            flag_set('fflag_feat_fit_568_finite_state_management', user=user)
-            and flag_set('fflag_feat_fit_710_fsm_state_fields', user=user)
-        ):
+        # Remove state field if FSM state fields are disabled
+        if not fsm_state_fields_enabled(self.context):
             ret.pop('state', None)
         return ret
 
@@ -826,8 +820,7 @@ class DataManagerTaskSerializer(TaskSerializer):
     def get_annotations(self, task) -> list[dict[str, Any]]:
         """Return annotations for the task.
 
-        If annotations_stub=True is in context (via feature flag
-        fflag_fix_all_fit_720_lazy_load_annotations), returns lightweight
+        If annotations_stub=True is in context, returns lightweight
         annotation stubs without result data for improved performance.
         """
         if not self.context.get('annotations'):
@@ -836,7 +829,7 @@ class DataManagerTaskSerializer(TaskSerializer):
         ordering = self.context.get('annotations_ordering')
         annotations = get_task_annotations_queryset(task, ordering, include_completed_by=True)
 
-        # Use stub serializer if requested (feature flag checked at API level)
+        # Use stub serializer if requested
         if self.context.get('annotations_stub'):
             return AnnotationStubSerializer(
                 annotations,

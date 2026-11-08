@@ -481,18 +481,6 @@ class ImportStorage(Storage):
             logger.info(f"Can't resolve URIs in data={data}", exc_info=True)
             return None
 
-    def _scan_and_create_links_v2(self):
-        # Async job execution for batch of objects:
-        # e.g. GCS example
-        # | "GetKey" >>  --> read file content into label_studio_semantic_search.indexer.RawDataObject repr
-        # | "AggregateBatch" >> beam.Combine      --> combine read objects into a batch
-        # | "AddObjects" >> label_studio_semantic_search.indexer.add_objects_from_bucket
-        # --> add objects from batch to Vector DB
-        # or for project task creation last step would be
-        # | "AddObject" >> ImportStorage.add_task
-
-        raise NotImplementedError
-
     @staticmethod
     def is_bare_task_data(task_data) -> bool:
         """True when a storage object carries no annotations or predictions, so its task can be bulk-created."""
@@ -702,10 +690,6 @@ class ImportStorage(Storage):
         return task
 
     def _scan_and_create_links(self, link_class):
-        """
-        TODO: deprecate this function and transform it to "pipeline" version  _scan_and_create_links_v2,
-        TODO: it must be compatible with opensource, so old version is needed as well
-        """
         # set in progress status for storage info
         self.info_set_in_progress()
 
@@ -714,14 +698,6 @@ class ImportStorage(Storage):
         task = self.project.tasks.order_by('-inner_id').first()
         max_inner_id = (task.inner_id + 1) if task else 1
         validation_errors = []
-
-        # Check feature flags once for the entire sync process
-        check_file_extension = flag_set(
-            'fflag_fix_back_plt_804_check_file_extension_11072025_short', organization=self.project.organization
-        )
-        existed_count_flag_set = flag_set(
-            'fflag_root_212_reduce_importstoragelink_counts', organization=self.project.organization
-        )
 
         tasks_for_webhook = []
         bulk_tasks = connection.features.can_return_rows_from_bulk_insert and flag_set(
@@ -753,10 +729,7 @@ class ImportStorage(Storage):
             tasks_for_webhook.extend(task.id for task in created)
             emit_webhooks_if_full()
 
-        # fflag_root_212_reduce_importstoragelink_counts is always on (pinned in STALE_FEATURE_FLAGS), so bulk task
-        # inserts span keys; with a key batch of 1 they would only batch the objects of a single file.
-        key_batch_size = settings.STORAGE_EXISTED_COUNT_BATCH_SIZE if existed_count_flag_set else 1
-        for keys_batch in _batched(self.iter_keys(), key_batch_size):
+        for keys_batch in _batched(self.iter_keys(), settings.STORAGE_EXISTED_COUNT_BATCH_SIZE):
             deduplicated_keys = list(dict.fromkeys(keys_batch))  # preserve order
             for key in deduplicated_keys:
                 logger.debug(f'Scanning key {key}')
@@ -779,7 +752,7 @@ class ImportStorage(Storage):
 
                 # Check if file should be processed as JSON based on extension
                 # Skip non-JSON files if use_blob_urls is False
-                if check_file_extension and not self.use_blob_urls:
+                if not self.use_blob_urls:
                     _, ext = os.path.splitext(key.lower())
                     # Only process files with JSON/JSONL/PARQUET extensions
                     json_extensions = {'.json', '.jsonl', '.parquet'}
