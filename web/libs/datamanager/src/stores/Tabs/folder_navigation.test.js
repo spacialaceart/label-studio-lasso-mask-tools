@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
-import { destroy, getSnapshot, types } from "mobx-state-tree";
+import { applySnapshot, destroy, getSnapshot, types } from "mobx-state-tree";
 import { TabStore } from "./store";
 import { folderFilterValue } from "./folder_filter";
 
 const Root = types.model({
   viewsStore: types.optional(TabStore, {}),
-  project: types.optional(types.frozen(), { id: 1 }),
+  project: types.optional(types.frozen(), { id: 1, folder_navigation: true }),
   apiVersion: 2,
   SDK: types.optional(types.frozen(), { invoke: () => {}, hasInterface: () => false }),
 });
@@ -37,6 +37,18 @@ describe("folder navigation", () => {
   afterEach(() => {
     save.mockRestore();
     destroy(root);
+  });
+
+  it("ignores saved folder selection when disabled and restores it when enabled", async () => {
+    await view.setFolderPrefix("E:\\chosen\\2016\\");
+    expect(view.serializedFilters).toHaveLength(1);
+    applySnapshot(root, { ...getSnapshot(root), project: { id: 1, folder_navigation: false } });
+    expect(view.serializedFilters).toHaveLength(0);
+    expect(view.filters).toHaveLength(1);
+    await view.setFolderPrefix("E:\\chosen\\2024\\");
+    expect(view.folderPrefix).toBe("E:\\chosen\\2016\\");
+    applySnapshot(root, { ...getSnapshot(root), project: { id: 1, folder_navigation: true } });
+    expect(view.serializedFilters).toHaveLength(1);
   });
 
   it("switches folders without accumulating filters and clears row selection", async () => {

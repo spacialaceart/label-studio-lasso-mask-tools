@@ -17,6 +17,7 @@ declare type APIProject = {
   /** Show instructions to the annotator before they start */
   show_instruction?: boolean;
   cpc_integration?: boolean;
+  folder_navigation?: boolean;
 
   /** Show a skip button in interface and allow annotators to skip the task */
   show_skip_button?: boolean;

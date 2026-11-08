@@ -204,7 +204,9 @@ export const Tab = types
     },
 
     get validFilters() {
-      return self.filters.filter((f) => !!f.isValidFilter);
+      return self.filters.filter(
+        (f) => !!f.isValidFilter && (self.root.project.folder_navigation === true || f !== self.folderFilter),
+      );
     },
 
     get serializedFilters() {
@@ -411,7 +413,7 @@ export const Tab = types
 
     setConjunction(value) {
       if (self.isLockedByManager) return self.notifyLocked();
-      if (value === "or" && self.folderFilter) {
+      if (value === "or" && self.root.project.folder_navigation === true && self.folderFilter) {
         self.root.SDK.invoke("toast", {
           message: "Choose All tasks before switching to Match any filters.",
           type: "info",
@@ -423,6 +425,7 @@ export const Tab = types
     },
 
     setFolderPrefix: flow(function* (prefix) {
+      if (self.root.project.folder_navigation !== true) return;
       if (self.isLockedByManager) return self.notifyLocked();
       const previous = self.folderFilter;
       // Replace directory-only filters previously entered by hand (e.g. "\\2016\\").

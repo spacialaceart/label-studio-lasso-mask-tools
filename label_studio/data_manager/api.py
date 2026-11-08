@@ -57,6 +57,8 @@ class ProjectFoldersAPI(APIView):
 
         project = generics.get_object_or_404(Project.objects.for_user(request.user), pk=pk)
         self.check_object_permissions(request, project)
+        if not project.workflow_feature_enabled('folder_navigation'):
+            return Response({'folders': []})
         rows = (
             LocalFilesImportStorageLink.objects.filter(task__project=project, storage__project=project)
             .values('storage_id', 'storage__path', 'key')

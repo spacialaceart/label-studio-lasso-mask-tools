@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { FolderSidebarContent } from "./FolderSidebar";
+import { Provider } from "mobx-react";
+import { FolderSidebar, FolderSidebarContent } from "./FolderSidebar";
 
 afterEach(cleanup);
 
@@ -22,6 +23,13 @@ function setup(result = { folders: [folder] }, overrides = {}) {
 }
 
 describe("FolderSidebar", () => {
+  it("does not mount or request folders when folder navigation is off", () => {
+    const store = { project: { id: 1, folder_navigation: false }, apiCall: mock(), currentView: {} };
+    const result = render(<Provider store={store}><FolderSidebar /></Provider>);
+    expect(result.container.innerHTML).toBe("");
+    expect(store.apiCall).not.toHaveBeenCalled();
+  });
+
   it("loads the whole project's folders and opens a year without importing tasks", async () => {
     const { store, view } = setup();
     const year = await screen.findByRole("button", { name: /2016/ });

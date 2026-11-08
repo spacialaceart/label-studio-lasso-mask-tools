@@ -8,6 +8,7 @@ import {
   IconExternal,
 } from "@humansignal/icons";
 import { useEffect, useRef } from "react";
+import { Form, Toggle } from "../../../components/Form";
 import { useHistory, useLocation } from "react-router-dom";
 import { useUpdatePageTitle, createTitleFromSegments } from "@humansignal/core";
 import { useProject } from "../../../providers/ProjectProvider";
@@ -17,7 +18,7 @@ import { useStorageCard } from "./hooks/useStorageCard";
 import "./StorageSettings.prefix.css";
 
 export const StorageSettings = () => {
-  const { project } = useProject();
+  const { project, fetchProject } = useProject();
   const rootClass = cn("storage-settings"); // TODO: Remove in the next BEM cleanup
   const history = useHistory();
   const location = useLocation();
@@ -60,6 +61,25 @@ export const StorageSettings = () => {
           annotations.
         </Typography>
       )}
+
+      <Form
+        action="updateProject"
+        formData={{ folder_navigation: project.folder_navigation === true }}
+        params={{ pk: project.id }}
+        onSubmit={() => fetchProject(project.id, true)}
+      >
+        <Form.Row columnCount={1}>
+          <Toggle
+            label="Folder navigation"
+            name="folder_navigation"
+            description="Browse imported local files by folder in the Data Manager."
+          />
+        </Form.Row>
+        <Form.Actions>
+          <Form.Indicator><span case="success">Saved!</span></Form.Indicator>
+          <Button type="submit" aria-label="Save folder navigation settings">Save</Button>
+        </Form.Actions>
+      </Form>
 
       {isLoading && !isLoaded && (
         <div className="flex items-center justify-center h-[50rem]">

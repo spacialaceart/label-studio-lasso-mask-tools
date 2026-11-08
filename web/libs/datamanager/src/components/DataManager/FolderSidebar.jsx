@@ -172,9 +172,13 @@ export const FolderSidebarContent = observer(function FolderSidebarContent({ sto
   );
 });
 
+const OptionalFolderSidebar = observer((props) =>
+  props.store.project.folder_navigation === true ? <FolderSidebarContent {...props} /> : null,
+);
+
 export const FolderSidebar = inject(({ store }) => ({
   store,
   view: store.currentView,
   projectId: store.project.id,
   totalTasks: store.project.task_count ?? store.project.task_number ?? 0,
-}))(FolderSidebarContent);
+}))(OptionalFolderSidebar);
